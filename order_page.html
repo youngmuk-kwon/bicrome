@@ -3,190 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>바이크롬 코 유산균 VIP 구매 페이지 (최종본)</title>
+    <title>바이크롬 코 유산균 VIP 구매 페이지 (동작 오류 수정)</title>
     <style>
-        /* --- 기본 스타일 --- */
+        /* --- CSS 스타일은 이전과 동일하게 유지됩니다. --- */
         body, h1, h2, p, ul, li, dl, dt, dd, input, button {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", helvetica, "Apple SD Gothic Neo", sans-serif;
             box-sizing: border-box;
         }
-        body {
-            background-color: #f9f9f9;
-        }
+        body { background-color: #f9f9f9; }
         .page-title {
-            text-align: center;
-            font-size: 32px;
-            font-weight: bold;
-            margin-top: 40px;
-            margin-bottom: 30px;
-            color: #222;
+            text-align: center; font-size: 32px; font-weight: bold;
+            margin-top: 40px; margin-bottom: 30px; color: #222;
         }
         #product-container {
-            width: 1200px;
-            margin: 0 auto 50px auto;
-            display: flex;
-            gap: 40px;
+            width: 1200px; margin: 0 auto 50px auto;
+            display: flex; gap: 40px;
         }
-        #product-details {
-            width: 70%;
-        }
+        #product-details { width: 70%; }
         #product-purchase {
-            width: 30%;
-            position: sticky;
-            top: 50px;
-            height: fit-content;
+            width: 30%; position: sticky;
+            top: 50px; height: fit-content;
         }
-        #product-details img {
-            max-width: 100%;
-            display: block;
-        }
+        #product-details img { max-width: 100%; display: block; }
         .purchase-box {
-            background-color: #fff;
-            border: 1px solid #e7e7e7;
-            padding: 30px;
+            background-color: #fff; border: 1px solid #e7e7e7; padding: 30px;
         }
         .purchase-box h1 {
-            font-size: 24px;
-            font-weight: 500;
-            border-bottom: 1px solid #e7e7e7;
-            padding-bottom: 20px;
+            font-size: 24px; font-weight: 500;
+            border-bottom: 1px solid #e7e7e7; padding-bottom: 20px;
         }
         .price-info {
-            padding: 20px 0;
-            border-bottom: 1px solid #e7e7e7;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 20px 0; border-bottom: 1px solid #e7e7e7;
+            display: flex; justify-content: space-between; align-items: center;
             font-size: 16px;
         }
         .price-info .price {
-            font-size: 28px;
-            font-weight: bold;
-            color: #d92525;
+            font-size: 28px; font-weight: bold; color: #d92525;
         }
-        .price-info .price span {
-            font-size: 18px;
-            font-weight: normal;
-        }
+        .price-info .price span { font-size: 18px; font-weight: normal; }
         .quantity-selector {
-            display: flex;
-            align-items: center;
-            margin: 20px 0;
+            display: flex; align-items: center; margin: 20px 0;
         }
-        .quantity-selector label {
-            font-weight: bold;
-            margin-right: 15px;
-        }
-        .quantity-controls {
-            display: flex;
-            border: 1px solid #ccc;
-        }
+        .quantity-selector label { font-weight: bold; margin-right: 15px; }
+        .quantity-controls { display: flex; border: 1px solid #ccc; }
         .quantity-controls button {
-            width: 30px;
-            height: 30px;
-            border: none;
-            background-color: #f0f0f0;
-            font-size: 20px;
-            cursor: pointer;
+            width: 30px; height: 30px; border: none;
+            background-color: #f0f0f0; font-size: 20px; cursor: pointer;
         }
         .quantity-controls input {
-            width: 40px;
-            height: 30px;
-            text-align: center;
-            border: none;
-            border-left: 1px solid #ccc;
-            border-right: 1px solid #ccc;
-        }
-        .order-form {
-            margin-top: 20px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            width: 40px; height: 30px; text-align: center; border: none;
+            border-left: 1px solid #ccc; border-right: 1px solid #ccc;
         }
         .total-price-section {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #333;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            margin-top: 30px; padding-top: 20px; border-top: 2px solid #333;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .total-price-section .total-label {
-            font-size: 16px;
-            font-weight: bold;
-        }
+        .total-price-section .total-label { font-size: 16px; font-weight: bold; }
         .total-price-section .total-amount {
-            font-size: 28px;
-            font-weight: bold;
-            color: #d92525;
+            font-size: 28px; font-weight: bold; color: #d92525;
         }
-        #submit-order-btn {
-            width: 100%;
-            padding: 15px;
-            margin-top: 20px;
-            background-color: #333;
-            color: #fff;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
+        .pc-purchase-button {
+            width: 100%; padding: 15px; margin-top: 20px;
+            background-color: #333; color: #fff; font-size: 18px;
+            font-weight: bold; border: none; border-radius: 4px;
+            cursor: pointer; transition: background-color 0.2s;
         }
-        #submit-order-btn:hover:not(:disabled) {
-            background-color: #555;
+        .pc-purchase-button:hover { background-color: #555; }
+
+        .mobile-purchase-bar {
+            display: none; position: fixed; bottom: 0; left: 0;
+            width: 100%; background-color: #fff; padding: 10px 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 100;
+            align-items: center; justify-content: space-between;
         }
-        #submit-order-btn:disabled {
-            background-color: #888;
-            cursor: not-allowed;
+        .mobile-purchase-bar .total-amount {
+            font-size: 20px; font-weight: bold; color: #d92525;
+        }
+        .mobile-purchase-bar #mobile-open-modal-btn {
+            width: 50%; padding: 12px; background-color: #333; color: #fff;
+            font-size: 16px; font-weight: bold; border: none;
+            border-radius: 4px; cursor: pointer;
         }
 
-        /* --- 반응형 스타일 --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.6);
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background-color: #fff; padding: 20px; border-radius: 8px;
+            width: 90%; max-width: 500px;
+        }
+        .modal-content h2 { font-size: 20px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label {
+            display: block; font-size: 14px;
+            font-weight: bold; margin-bottom: 8px;
+        }
+        .form-group input {
+            width: 100%; padding: 10px;
+            border: 1px solid #ccc; border-radius: 4px;
+            font-size: 16px;
+        }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-buttons button {
+            flex: 1; padding: 12px; font-size: 16px;
+            font-weight: bold; border-radius: 4px;
+            border: none; cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #submit-order-btn {
+            background-color: #333; color: white;
+        }
+        #submit-order-btn:hover:not(:disabled) { background-color: #555; }
+        #submit-order-btn:disabled { background-color: #888; cursor: not-allowed; }
+        #cancel-btn {
+            background-color: #6c757d; color: white;
+        }
+        #cancel-btn:hover { background-color: #5a6268; }
+
         @media (max-width: 768px) {
             .page-title {
-                font-size: 24px;
-                margin-top: 20px;
-                margin-bottom: 20px;
-                padding: 0 15px;
+                font-size: 24px; margin-top: 20px; margin-bottom: 20px; padding: 0 15px;
             }
             #product-container {
-                width: 100%;
-                flex-direction: column;
-                margin: 0;
-                gap: 0;
+                width: 100%; flex-direction: column; margin: 0; gap: 0;
+                padding-bottom: 80px;
             }
-            #product-details,
-            #product-purchase {
-                width: 100%;
-            }
-            #product-purchase {
-                position: static;
-            }
-            .purchase-box {
-                border-left: none;
-                border-right: none;
-                border-radius: 0;
-                padding: 20px 15px;
-            }
+            #product-details { width: 100%; }
+            #product-purchase { display: none; }
+            .mobile-purchase-bar { display: flex; }
         }
     </style>
 </head>
 <body>
-
     <h1 class="page-title">바이크롬 코 유산균 VIP 구매 페이지</h1>
 
     <div id="product-container">
@@ -195,67 +146,90 @@
             <img src="detail-image-1.jpg" alt="코유산균 상세 설명 1">
             <img src="detail-image-2.jpg" alt="코유산균 상세 설명 2">
         </div>
-
+        
         <div id="product-purchase">
             <div class="purchase-box">
                 <h1>코유산균 (30포)</h1>
                 <div class="price-info">
                     <span>판매가</span>
-                    <span class="price" id="unit-price" data-price="57000">57,000<span>원</span></span>
+                    <span class="price" data-price="57000">57,000<span>원</span></span>
                 </div>
-
-                <form id="order-form-main">
-                    <div class="quantity-selector">
-                        <label>수량</label>
-                        <div class="quantity-controls">
-                            <button type="button" id="quantity-minus">-</button>
-                            <input type="text" id="quantity" value="1" readonly>
-                            <button type="button" id="quantity-plus">+</button>
-                        </div>
-                    </div>
-                    <div class="order-form">
-                        <div class="form-group">
-                            <label for="buyer-name">주문자 이름</label>
-                            <input type="text" id="buyer-name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="buyer-phone">전화번호</label>
-                            <input type="tel" id="buyer-phone" placeholder="010-1234-5678" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="buyer-address">주소</label>
-                            <input type="text" id="buyer-address" required>
-                        </div>
-                    </div>
-                    <div class="total-price-section">
-                        <span class="total-label">총 주문금액</span>
-                        <span class="total-amount" id="total-price">57,000원</span>
-                    </div>
-                    <button type="submit" id="submit-order-btn">주문하기</button>
-                </form>
+                <button type="button" id="pc-open-modal-btn" class="pc-purchase-button">구매하기</button>
             </div>
         </div>
     </div>
 
+    <div class="mobile-purchase-bar">
+        <span class="total-amount" id="mobile-total-price">57,000원</span>
+        <button id="mobile-open-modal-btn">구매하기</button>
+    </div>
+
+    <div class="modal-overlay" id="orderModal">
+        <div class="modal-content">
+            <h2>주문 정보</h2>
+            <form id="order-form-main">
+                <div class="quantity-selector">
+                    <label>수량</label>
+                    <div class="quantity-controls">
+                        <button type="button" id="quantity-minus">-</button>
+                        <input type="text" id="quantity" value="1" readonly>
+                        <button type="button" id="quantity-plus">+</button>
+                    </div>
+                </div>
+                <div class="order-form">
+                    <div class="form-group">
+                        <label for="buyer-name">주문자 이름</label>
+                        <input type="text" id="buyer-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyer-phone">전화번호</label>
+                        <input type="tel" id="buyer-phone" placeholder="010-1234-5678" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="buyer-address">주소</label>
+                        <input type="text" id="buyer-address" required>
+                    </div>
+                </div>
+                <div class="total-price-section">
+                    <span class="total-label">총 주문금액</span>
+                    <span class="total-amount" id="modal-total-price">57,000원</span>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" id="submit-order-btn">주문하기</button>
+                    <button type="button" id="cancel-btn">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+    // --- 요소 가져오기 ---
     const quantityInput = document.getElementById('quantity');
     const plusBtn = document.getElementById('quantity-plus');
     const minusBtn = document.getElementById('quantity-minus');
-    const unitPriceEl = document.getElementById('unit-price');
-    const totalPriceEl = document.getElementById('total-price');
+    const mobileTotalPriceEl = document.getElementById('mobile-total-price');
+    const modalTotalPriceEl = document.getElementById('modal-total-price');
     const orderForm = document.getElementById('order-form-main');
+    const orderModal = document.getElementById('orderModal');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const pcOpenModalBtn = document.getElementById('pc-open-modal-btn');
+    const mobileOpenModalBtn = document.getElementById('mobile-open-modal-btn');
     
-    // 중요: 이 주소는 Render.com에 배포한 Web Service의 주소로 변경해야 합니다.
-    const SERVER_URL = 'https://bicrome-vip-page.onrender.com';
+    const SERVER_URL = 'https://your-web-service-name.onrender.com';
+    const unitPrice = 57000;
 
-    const unitPrice = parseInt(unitPriceEl.dataset.price, 10);
-
+    // --- 총 가격 업데이트 함수 ---
     function updateTotalPrice() {
         const quantity = parseInt(quantityInput.value, 10);
         const total = unitPrice * quantity;
-        totalPriceEl.textContent = total.toLocaleString('ko-KR') + '원';
+        const formattedTotal = total.toLocaleString('ko-KR') + '원';
+        
+        // 모바일 하단 바와 모달 안의 가격을 모두 업데이트
+        if (mobileTotalPriceEl) mobileTotalPriceEl.textContent = formattedTotal;
+        if (modalTotalPriceEl) modalTotalPriceEl.textContent = formattedTotal;
     }
 
+    // --- 이벤트 리스너 ---
     plusBtn.addEventListener('click', () => {
         quantityInput.value = parseInt(quantityInput.value, 10) + 1;
         updateTotalPrice();
@@ -269,16 +243,26 @@
         }
     });
 
+    // --- 모달 열고 닫기 로직 ---
+    function openModal() { orderModal.style.display = 'flex'; }
+    function closeModal() { orderModal.style.display = 'none'; }
+
+    pcOpenModalBtn.addEventListener('click', openModal);
+    mobileOpenModalBtn.addEventListener('click', openModal);
+    cancelBtn.addEventListener('click', closeModal);
+    orderModal.addEventListener('click', (event) => {
+        if (event.target === orderModal) { closeModal(); }
+    });
+
+    // --- 주문 제출 로직 ---
     orderForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-
         const orderData = {
             quantity: parseInt(quantityInput.value, 10),
             name: document.getElementById('buyer-name').value,
-            // 전화번호에서 하이픈(-)을 모두 제거하여 데이터 형식을 통일합니다.
             phone: document.getElementById('buyer-phone').value.replace(/-/g, ''),
             address: document.getElementById('buyer-address').value,
-            totalAmount: totalPriceEl.textContent
+            totalAmount: modalTotalPriceEl.textContent
         };
 
         if (!orderData.name || !orderData.phone || !orderData.address) {
@@ -287,7 +271,6 @@
         }
         
         const submitBtn = document.getElementById('submit-order-btn');
-        // 주문 처리 중 버튼을 비활성화하여 중복 클릭을 방지합니다.
         submitBtn.disabled = true;
         submitBtn.textContent = '주문 처리 중...';
 
@@ -297,14 +280,13 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderData),
             });
-
             const result = await response.json();
-
             if (response.ok) {
                 alert('주문이 성공적으로 접수되었습니다.');
                 orderForm.reset();
                 quantityInput.value = 1;
                 updateTotalPrice();
+                closeModal();
             } else {
                 alert(`주문 접수 실패: ${result.message}`);
             }
@@ -312,11 +294,13 @@
             console.error('서버 통신 오류:', error);
             alert('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
         } finally {
-            // 요청이 성공하든 실패하든, 버튼을 다시 활성화합니다.
             submitBtn.disabled = false;
             submitBtn.textContent = '주문하기';
         }
     });
+
+    // 초기 가격 설정
+    updateTotalPrice();
     </script>
 
 </body>
