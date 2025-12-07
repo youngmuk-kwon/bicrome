@@ -1,0 +1,429 @@
+프로젝트 구조
+아래와 같이 3개의 파일을 한 폴더에 만들어 주세요.
+
+plaintext
+/order-app
+├── index.html      (사용자 주문 페이지)
+├── admin.html      (관리자 주문 확인 페이지)
+└── server.js       (주문 데이터를 처리하는 서버)
+1. 백엔드 서버 만들기 (server.js)
+먼저 주문 데이터를 받고 관리자에게 전달해 줄 백엔드 서버를 만들겠습니다.
+
+가. 서버 환경 설정 터미널(명령 프롬프트)을 열고 아래 명령어를 순서대로 입력하여 필요한 라이브러리를 설치합니다.
+
+bash
+ Show full code block 
+# 1. 프로젝트 폴더 생성 및 이동
+mkdir order-app
+cd order-app
+
+# 2. Node.js 프로젝트 시작
+npm init -y
+
+# 3. Express (서버 프레임워크), CORS (도메인 간 통신 허용) 설치
+npm install express cors
+나. server.js 코드 작성 이제 order-app 폴더 안에 server.js 파일을 만들고 아래 코드를 붙여넣으세요.
+
+javascript
+ Show full code block 
+// server.js
+const express = require('express');
+const cors = require('cors');
+const app = express();
+const port = 3000;
+
+// 미들웨어 설정
+app.use(cors()); // CORS 허용
+app.use(express.json()); // JSON 요청 본문 파싱
+
+// 데이터베이스 대신 사용할 메모리 내 주문 목록
+let orders = [];
+let orderIdCounter = 1;
+
+// [API] 새 주문 접수 (사용자용)
+app.post('/api/orders', (req, res) => {
+    const { quantity, name, phone, address } = req.body;
+
+    // 간단한 유효성 검사
+    if (!quantity || !name || !phone || !address) {
+        return res.status(400).json({ message: '모든 필드를 입력해주세요.' });
+    }
+
+    const newOrder = {
+        id: orderIdCounter++,
+        quantity,
+        name,
+        phone,
+        address,
+        status: '배송 준비 중', // 주문 초기 상태
+        orderDate: new Date().toLocaleString('ko-KR')
+    };
+
+    orders.push(newOrder);
+    console.log('새 주문이 접수되었습니다:', newOrder);
+    res.status(201).json({ message: '주문이 성공적으로 접수되었습니다.', order: newOrder });
+});
+
+// [API] 전체 주문 목록 조회 (관리자용)
+app.get('/api/orders', (req, res) => {
+    // 최신 주문이 위로 오도록 정렬하여 반환
+    res.json(orders.slice().reverse());
+});
+
+// [API] 주문 상태 변경 (관리자용)
+app.patch('/api/orders/:id/complete', (req, res) => {
+    const orderId = parseInt(req.params.id, 10);
+    const order = orders.find(o => o.id === orderId);
+
+    if (order) {
+        order.status = '배송 완료';
+        console.log(`주문 #${orderId} 상태가 '배송 완료'로 변경되었습니다.`);
+        res.json(order);
+    } else {
+        res.status(404).json({ message: '주문을 찾을 수 없습니다.' });
+    }
+});
+
+// 서버 시작
+app.listen(port, () => {
+    console.log(`서버가 http://localhost:${port} 에서 실행 중입니다.`);
+});
+2. 사용자 주문 페이지 (index.html)
+기존에 만들었던 제품 소개 페이지에 주문 폼(Modal)과 서버 통신 스크립트를 추가합니다.
+
+html
+ Show full code block 
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>갤럭시 버즈3 프로 주문</title>
+    <style>
+        /* 이전과 동일한 스타일 */
+        body { font-family: sans-serif; margin: 0; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 50px 0; background-color: #fff; }
+        .header h1 { font-size: 3em; margin: 0; }
+        .product-image img { max-width: 100%; }
+        .buy-button { display: inline-block; background-color: #007bff; color: #fff; padding: 15px 30px; font-size: 1.2em; text-decoration: none; border-radius: 5px; cursor: pointer; }
+        .buy-button:hover { background-color: #0056b3; }
+        
+        /* 주문 모달 스타일 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: #fff; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-content h2 { margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 95%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .modal-buttons { text-align: right; margin-top: 20px; }
+        .modal-buttons button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .submit-btn { background-color: #28a745; color: white; }
+        .cancel-btn { background-color: #6c757d; color: white; margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <!-- 제품 정보 (이전과 동일) -->
+    <div class="header">
+        <h1>Galaxy Buds3 Pro</h1>
+    </div>
+    <div class="container" style="text-align: center;">
+        <img src="https://images.samsung.com/is/image/samsung/p6pim/kr/sm-r630nzaakoo/gallery/kr-galaxy-buds3-pro-r630-sm-r630nzaakoo-542018909?$650_519_PNG$" alt="갤럭시 버즈3 프로" style="max-width: 400px;">
+        <h2>Galaxy AI로 완성된 새로운 차원의 사운드</h2>
+        <p>가격: 359,000원</p>
+        <button class="buy-button" id="buyBtn">구매하기</button>
+    </div>
+
+    <!-- 주문 정보 입력 모달 -->
+    <div class="modal-overlay" id="orderModal">
+        <div class="modal-content">
+            <h2>주문 정보 입력</h2>
+            <form id="orderForm">
+                <div class="form-group">
+                    <label for="quantity">수량</label>
+                    <input type="number" id="quantity" name="quantity" value="1" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="name">주문자 이름</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">전화번호</label>
+                    <input type="tel" id="phone" name="phone" placeholder="010-1234-5678" required>
+                </div>
+                <div class="form-group">
+                    <label for="address">주소</label>
+                    <input type="text" id="address" name="address" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="submit-btn">주문하기</button>
+                    <button type="button" class="cancel-btn" id="cancelBtn">취소</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const buyBtn = document.getElementById('buyBtn');
+        const orderModal = document.getElementById('orderModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const orderForm = document.getElementById('orderForm');
+
+        // '구매하기' 버튼 클릭 시 모달 표시
+        buyBtn.addEventListener('click', () => {
+            orderModal.style.display = 'flex';
+        });
+
+        // '취소' 버튼 클릭 시 모달 숨기기
+        cancelBtn.addEventListener('click', () => {
+            orderModal.style.display = 'none';
+        });
+
+        // 모달 바깥 영역 클릭 시 모달 숨기기
+        orderModal.addEventListener('click', (e) => {
+            if (e.target === orderModal) {
+                orderModal.style.display = 'none';
+            }
+        });
+
+        // 폼 제출 시 서버로 데이터 전송
+        orderForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // 폼 기본 동작 방지
+
+            const formData = new FormData(orderForm);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('http://localhost:3000/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('주문이 성공적으로 접수되었습니다!');
+                    orderForm.reset();
+                    orderModal.style.display = 'none';
+                } else {
+                    alert(`주문 실패: ${result.message}`);
+                }
+            } catch (error) {
+                console.error('서버 통신 오류:', error);
+                alert('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+            }
+        });
+    </script>
+</body>
+</html>
+3. 관리자 주문 확인 페이지 (admin.html)
+서버에 저장된 주문 목록을 확인하고 '배송 완료' 처리를 할 수 있는 페이지입니다.
+
+html
+ Show full code block 
+<!-- admin.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>관리자 - 주문 관리</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f8f9fa; }
+        h1 { text-align: center; }
+        #order-list { list-style: none; padding: 0; }
+        .order-item { background: #fff; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .order-item h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .order-item p { margin: 5px 0; }
+        .order-item .status { font-weight: bold; }
+        .status-pending { color: #ffc107; }
+        .status-shipped { color: #28a745; }
+        .complete-btn { background-color: #007bff; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; float: right; }
+        .complete-btn:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .refresh-btn { display: block; margin: 20px auto; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>주문 관리 페이지</h1>
+    <button id="refreshBtn" class="refresh-btn">새로고침</button>
+    <ul id="order-list">
+        <!-- 주문 목록이 여기에 동적으로 추가됩니다. -->
+    </ul>
+
+    <script>
+        const orderList = document.getElementById('order-list');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        // 서버에서 주문 목록을 가져와 화면에 표시하는 함수
+        async function fetchOrders() {
+            try {
+                const response = await fetch('http://localhost:3000/api/orders');
+                const orders = await response.json();
+
+                orderList.innerHTML = ''; // 기존 목록 초기화
+
+                if (orders.length === 0) {
+                    orderList.innerHTML = '<li>접수된 주문이 없습니다.</li>';
+                    return;
+                }
+
+                orders.forEach(order => {
+                    const li = document.createElement('li');
+                    li.className = 'order-item';
+                    li.dataset.orderId = order.id;
+
+                    const isShipped = order.status === '배송 완료';
+
+                    li.innerHTML = `
+                        <h3>주문 번호: #${order.id}</h3>
+                        <button class="complete-btn" ${isShipped ? 'disabled' : ''}>배송 완료 처리</button>
+                        <p><strong>주문 일시:</strong> ${order.orderDate}</p>
+                        <p><strong>주문자:</strong> ${order.name}</p>
+                        <p><strong>연락처:</strong> ${order.phone}</p>
+                        <p><strong>주소:</strong> ${order.address}</p>
+                        <p><strong>수량:</strong> ${order.quantity}개</p>
+                        <p><strong>상태:</strong> <span class="status ${isShipped ? 'status-shipped' : 'status-pending'}">${order.status}</span></p>
+                    `;
+                    orderList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('주문 목록 로딩 실패:', error);
+                orderList.innerHTML = '<li>주문 목록을 불러오는 데 실패했습니다.</li>';
+            }
+        }
+
+        // '배송 완료' 버튼 클릭 이벤트 처리 (이벤트 위임 사용)
+        orderList.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('complete-btn')) {
+                const listItem = e.target.closest('.order-item');
+                const orderId = listItem.dataset.orderId;
+
+                if (confirm(`주문 번호 #${orderId}를 '배송 완료' 처리하시겠습니까?`)) {
+                    try {
+                        const response = await fetch(`http://localhost:3000/api/orders/${orderId}/complete`, {
+                            method: 'PATCH',
+                        });
+
+                        if (response.ok) {
+                            alert('배송 상태가 업데이트되었습니다.');
+                            fetchOrders(); // 목록 새로고침
+                        } else {
+                            const result = await response.json();
+                            alert(`업데이트 실패: ${result.message}`);
+                        }
+                    } catch (error) {
+                        console.error('상태 업데이트 실패:', error);
+                        alert('서버 통신 중 오류가 발생했습니다.');
+                    }
+                }
+            }
+        });
+        
+        // 새로고침 버튼 클릭 이벤트
+        refreshBtn.addEventListener('click', fetchOrders);
+
+        // 페이지 로드 시 주문 목록 즉시 로드
+        fetchOrders();
+    </script>
+</body>
+</html>
+4. 실행 방법
+서버 실행: 터미널에서 order-app 폴더로 이동한 후, 아래 명령어를 입력하여 백엔드 서버를 시작합니다.
+
+bash
+node server.js
+터미널에 서버가 http://localhost:3000 에서 실행 중입니다. 메시지가 나타나면 성공입니다.
+
+사용자 페이지 접속: 웹 브라우저를 열고 index.html 파일을 직접 열거나, 라이브 서버(VS Code 확장 기능 등)로 실행합니다.
+
+'구매하기' 버튼을 눌러 정보를 입력하고 '주문하기'를 클릭하면 주문이 접수됩니다.
+관리자 페이지 접속: 다른 웹 브라우저 탭에서 admin.html 파일을 엽니다.
+
+방금 접수된 주문이 목록에 나타나는 것을 확인할 수 있습니다.
+'배송 완료 처리' 버튼을 누르면 주문 상태가 변경되고 버튼이 비활성화됩니다.
+코드 개선 및 실제 적용 시 고려사항
+데이터베이스: 현재는 서버가 재시작되면 모든 주문 정보가 사라집니다. 실제 서비스에서는 MySQL, PostgreSQL, MongoDB 같은 데이터베이스에 주문 정보를 영구적으로 저장해야 합니다.
+보안: 관리자 페이지는 누구나 접속할 수 있습니다. 실제로는 로그인 기능을 구현하여 허가된 관리자만 접근할 수 있도록 인증(Authentication) 및 인가(Authorization) 절차를 추가해야 합니다.
+입력값 검증: 현재는 간단한 필수값 체크만 하지만, 전화번호 형식, 주소 형식 등 더 정교한 서버 측 **유효성 검사(Validation)**가 필요합니다.
+UI/UX: 현재는 기능 구현에 초점을 맞췄습니다. 실제 서비스에서는 사용자 경험을 개선하기 위해 더 세련된 디자인과 인터랙션을 적용하는 것이 좋습니다.
+
+
+
+
+
+
+웹사이트와 서버를 외부 인터넷에 공개하는 방법은 여러 가지가 있습니다. 초보자도 쉽게 따라 할 수 있는 클라우드 호스팅 서비스를 이용하는 것을 추천합니다. 이 서비스들은 복잡한 서버 설정 없이 코드만 올리면 알아서 웹사이트를 세상에 공개해 줍니다.
+
+여기서는 Render라는 서비스를 이용한 배포 방법을 단계별로 안내해 드리겠습니다. 무료 플랜을 제공해서 테스트용으로 사용하기에 아주 좋습니다.
+
+1단계: 코드 준비 (Git & GitHub)
+클라우드 서비스들은 대부분 Git을 통해 코드를 가져옵니다. 코드를 GitHub에 먼저 올려야 합니다.
+
+GitHub 계정 만들기: 계정이 없다면 github.com에서 회원가입을 합니다.
+새 저장소(Repository) 만들기: GitHub에서 New repository 버튼을 눌러 order-app 같은 이름으로 새 저장소를 만듭니다. (Public으로 설정)
+코드 업로드: 사용자님의 PC에 있는 order-app 폴더의 파일들(index.html, admin.html, server.js, package.json 등)을 방금 만든 GitHub 저장소에 업로드합니다.
+Git 명령어를 사용하는 방법 (권장):
+bash
+ Show full code block 
+# order-app 폴더 안에서 실행
+git init
+git add .
+git commit -m "첫번째 커밋"
+git branch -M main
+git remote add origin https://github.com/YourUsername/order-app.git
+git push -u origin main
+웹사이트에서 직접 업로드하는 방법: 저장소에서 Add file > Upload files를 선택하여 파일들을 끌어다 놓아도 됩니다.
+2단계: 백엔드 서버 배포하기 (Render 이용)
+먼저 주문을 처리할 server.js를 인터넷에 올립니다.
+
+Render 회원가입: render.com에 접속하여 GitHub 계정으로 회원가입/로그인합니다.
+새로운 Web Service 만들기:
+Render 대시보드에서 [New +] > **[Web Service]**를 클릭합니다.
+GitHub 저장소 목록이 나타나면, 방금 만든 order-app 저장소 옆의 [Connect] 버튼을 누릅니다.
+설정 입력:
+Name: order-app-server 와 같이 원하는 이름을 입력합니다. (이 이름이 서버 주소의 일부가 됩니다.)
+Region: Singapore 또는 가까운 지역을 선택합니다.
+Branch: main (또는 코드를 올린 브랜치 이름)
+Root Directory: 비워둡니다.
+Runtime: Node (자동으로 감지됩니다.)
+Build Command: npm install 이라고 입력합니다.
+Start Command: node server.js 라고 입력합니다.
+Instance Type: Free 플랜을 선택합니다.
+배포 시작: 맨 아래 [Create Web Service] 버튼을 클릭합니다.
+몇 분 정도 지나면 배포가 시작되고 로그가 올라옵니다. 배포가 성공하면 Your service is live 라는 메시지와 함께 https://order-app-server.onrender.com 과 같은 형식의 고유 주소가 생성됩니다. 이 주소를 복사해두세요.
+3단계: 프론트엔드 페이지 배포하기 (Render 이용)
+이제 사용자들이 접속할 index.html과 관리자 페이지 admin.html을 올립니다.
+
+index.html 코드 수정:
+
+사용자님의 PC에 있는 index.html 파일을 열어 JavaScript 코드의 fetch 주소를 2단계에서 복사한 서버 주소로 변경해야 합니다.
+javascript
+ Show full code block 
+// index.html의 <script> 태그 안
+// 수정 전
+// const response = await fetch('http://localhost:3000/api/orders', { ... });
+
+// 수정 후 (반드시 본인의 서버 주소로 변경)
+const response = await fetch('https://order-app-server.onrender.com/api/orders', { ... });
+admin.html도 마찬가지로 fetch 주소를 모두 새 서버 주소로 변경합니다.
+수정한 파일들을 다시 GitHub에 업로드(push)합니다.
+새로운 Static Site 만들기:
+
+Render 대시보드에서 [New +] > **[Static Site]**를 클릭합니다.
+order-app 저장소를 다시 선택하고 **[Connect]**를 누릅니다.
+설정 입력:
+
+Name: my-order-page 와 같이 원하는 이름을 입력합니다.
+Branch: main
+Build Command: 비워두거나 npm install을 입력합니다.
+Publish Directory: . (현재 디렉토리를 의미)
+배포 시작: [Create Static Site] 버튼을 클릭합니다.
+
+배포가 완료되면 https://my-order-page.onrender.com 과 같은 공유 가능한 주소가 생성됩니다.
+결과 및 사용 방법
+주문 받기: https://my-order-page.onrender.com/index.html 주소를 다른 사람들에게 공유하면, 누구나 접속해서 주문을 남길 수 있습니다.
+주문 확인하기: 사용자님은 https://my-order-page.onrender.com/admin.html 주소로 접속하여 들어온 주문을 확인하고 '배송 완료' 처리를 할 수 있습니다.
+이제 사용자님의 주문 페이지는 전 세계 어디서든 접속할 수 있는 실제 웹사이트가 되었습니다!

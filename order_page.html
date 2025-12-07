@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>바이크롬 코 유산균 VIP 구매 페이지</title>
+    <style>
+        /* 기본 스타일 초기화 및 폰트 설정 */
+        body, h1, h2, p, ul, li, dl, dt, dd, input, button {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", helvetica, "Apple SD Gothic Neo", sans-serif;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #f9f9f9;
+        }
+        
+        /********************************************/
+        /*           페이지 제목 스타일 (추가됨)         */
+        /********************************************/
+        .page-title {
+            text-align: center; /* 가운데 정렬 */
+            font-size: 32px;
+            font-weight: bold;
+            margin-top: 40px;
+            margin-bottom: 30px; /* 상품 영역과의 간격 */
+            color: #222;
+        }
+
+        /* 전체 레이아웃 */
+        #product-container {
+            width: 1200px;
+            margin: 0 auto 50px auto; /* 상단 마진을 0으로 변경 */
+            display: flex;
+            gap: 40px; /* 좌우 간격 */
+        }
+        #product-details {
+            width: 70%;
+        }
+        #product-purchase {
+            width: 30%;
+            position: sticky; /* 스크롤해도 따라오도록 설정 */
+            top: 50px;
+            height: fit-content;
+        }
+        #product-details img {
+            max-width: 100%;
+            display: block;
+        }
+        /* 우측 구매 영역 스타일 */
+        .purchase-box {
+            background-color: #fff;
+            border: 1px solid #e7e7e7;
+            padding: 30px;
+        }
+        .purchase-box h1 {
+            font-size: 24px;
+            font-weight: 500;
+            border-bottom: 1px solid #e7e7e7;
+            padding-bottom: 20px;
+        }
+        .price-info {
+            padding: 20px 0;
+            border-bottom: 1px solid #e7e7e7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+        }
+        .price-info .price {
+            font-size: 28px;
+            font-weight: bold;
+            color: #d92525;
+        }
+        .price-info .price span {
+            font-size: 18px;
+            font-weight: normal;
+        }
+        /* 수량 조절 스타일 */
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .quantity-selector label {
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        .quantity-controls {
+            display: flex;
+            border: 1px solid #ccc;
+        }
+        .quantity-controls button {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background-color: #f0f0f0;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .quantity-controls input {
+            width: 40px;
+            height: 30px;
+            text-align: center;
+            border: none;
+            border-left: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+        }
+        /* 주문자 정보 입력 폼 */
+        .order-form {
+            margin-top: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        /* 총 주문금액 및 주문 버튼 */
+        .total-price-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .total-price-section .total-label {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .total-price-section .total-amount {
+            font-size: 28px;
+            font-weight: bold;
+            color: #d92525;
+        }
+        #submit-order-btn {
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background-color: #333;
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #submit-order-btn:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 페이지 제목 (추가됨) -->
+    <h1 class="page-title">바이크롬 코 유산균 VIP 구매 페이지</h1>
+
+    <div id="product-container">
+        <!-- 좌측: 상품 상세 정보 -->
+        <div id="product-details">
+            <img src="main-image.jpg" alt="코유산균 대표 이미지">
+            <img src="detail-image-1.jpg" alt="코유산균 상세 설명 1">
+            <img src="detail-image-2.jpg" alt="코유산균 상세 설명 2">
+        </div>
+
+        <!-- 우측: 구매 및 주문 정보 입력 -->
+        <div id="product-purchase">
+            <div class="purchase-box">
+                <h1>코유산균 (30포)</h1>
+                <div class="price-info">
+                    <span>판매가</span>
+                    <span class="price" id="unit-price" data-price="57000">57,000<span>원</span></span>
+                </div>
+
+                <form id="order-form-main">
+                    <div class="quantity-selector">
+                        <label>수량</label>
+                        <div class="quantity-controls">
+                            <button type="button" id="quantity-minus">-</button>
+                            <input type="text" id="quantity" value="1" readonly>
+                            <button type="button" id="quantity-plus">+</button>
+                        </div>
+                    </div>
+
+                    <div class="order-form">
+                        <div class="form-group">
+                            <label for="buyer-name">주문자 이름</label>
+                            <input type="text" id="buyer-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="buyer-phone">전화번호</label>
+                            <input type="tel" id="buyer-phone" placeholder="010-1234-5678" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="buyer-address">주소</label>
+                            <input type="text" id="buyer-address" required>
+                        </div>
+                    </div>
+
+                    <div class="total-price-section">
+                        <span class="total-label">총 주문금액</span>
+                        <span class="total-amount" id="total-price">57,000원</span>
+                    </div>
+
+                    <button type="submit" id="submit-order-btn">주문하기</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // --- 요소 가져오기 ---
+    const quantityInput = document.getElementById('quantity');
+    const plusBtn = document.getElementById('quantity-plus');
+    const minusBtn = document.getElementById('quantity-minus');
+    const unitPriceEl = document.getElementById('unit-price');
+    const totalPriceEl = document.getElementById('total-price');
+    const orderForm = document.getElementById('order-form-main');
+    
+    // 서버 주소 (server.js가 실행될 주소)
+    const SERVER_URL = 'http://localhost:3000';
+
+    const unitPrice = parseInt(unitPriceEl.dataset.price, 10);
+
+    // --- 총 가격 업데이트 함수 ---
+    function updateTotalPrice() {
+        const quantity = parseInt(quantityInput.value, 10);
+        const total = unitPrice * quantity;
+        totalPriceEl.textContent = total.toLocaleString('ko-KR') + '원';
+    }
+
+    // --- 이벤트 리스너 설정 ---
+    plusBtn.addEventListener('click', () => {
+        let currentQuantity = parseInt(quantityInput.value, 10);
+        quantityInput.value = currentQuantity + 1;
+        updateTotalPrice();
+    });
+
+    minusBtn.addEventListener('click', () => {
+        let currentQuantity = parseInt(quantityInput.value, 10);
+        if (currentQuantity > 1) {
+            quantityInput.value = currentQuantity - 1;
+            updateTotalPrice();
+        }
+    });
+
+    // '주문하기' 버튼 클릭 시 서버로 데이터 전송
+    orderForm.addEventListener('submit', async (event) => {
+        event.preventDefault(); // 폼의 기본 제출 동작(페이지 새로고침)을 막음
+
+        // 입력된 정보 가져오기
+        const quantity = quantityInput.value;
+        const name = document.getElementById('buyer-name').value;
+        const phone = document.getElementById('buyer-phone').value;
+        const address = document.getElementById('buyer-address').value;
+        const totalAmount = totalPriceEl.textContent;
+
+        if (!name || !phone || !address) {
+            alert('주문자 이름, 전화번호, 주소를 모두 입력해주세요.');
+            return;
+        }
+
+        // 서버로 전송할 데이터 객체
+        const orderData = {
+            quantity: parseInt(quantity, 10),
+            name,
+            phone,
+            address,
+            totalAmount
+        };
+
+        // 서버로 실제 데이터를 전송하는 부분 (fetch API 사용)
+        try {
+            const response = await fetch(`${SERVER_URL}/api/orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderData),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert('주문이 성공적으로 접수되었습니다.');
+                orderForm.reset(); // 폼 필드 초기화
+                quantityInput.value = 1; // 수량 1로 리셋
+                updateTotalPrice(); // 총 가격 리셋
+            } else {
+                // 서버에서 보낸 에러 메시지 표시
+                alert(`주문 접수 실패: ${result.message}`);
+            }
+        } catch (error) {
+            console.error('서버 통신 오류:', error);
+            alert('서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
+        }
+    });
+</script>
+
+</body>
+</html>
