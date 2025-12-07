@@ -1,8 +1,8 @@
-<!-- admin.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>주문 관리 대시보드</title>
     <style>
         body {
@@ -10,6 +10,10 @@
             background-color: #f4f7f6;
             margin: 0;
             padding: 20px;
+        }
+        /* 비밀번호를 입력하기 전에는 내용을 숨기기 위한 스타일 */
+        .hidden {
+            display: none;
         }
         h1 {
             text-align: center;
@@ -46,12 +50,13 @@
             padding: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             display: grid;
+            /* PC에서는 3열 그리드 레이아웃 사용 */
             grid-template-columns: repeat(3, 1fr);
             gap: 15px 20px;
             align-items: center;
         }
         .order-item h3 {
-            grid-column: 1 / -1; /* 제목은 전체 너비 차지 */
+            grid-column: 1 / -1;
             margin: 0 0 15px 0;
             padding-bottom: 15px;
             border-bottom: 1px solid #eee;
@@ -61,20 +66,21 @@
             margin: 0;
             font-size: 14px;
             color: #555;
+            line-height: 1.5;
         }
         .order-item p strong {
             color: #333;
             display: inline-block;
-            width: 70px; /* 라벨 너비 고정 */
+            width: 70px;
         }
         .order-item .address-info {
-            grid-column: 1 / -1; /* 주소는 한 줄 전체 차지 */
+            grid-column: 1 / -1;
         }
         .order-item .status {
             font-weight: bold;
         }
-        .status-pending { color: #ff8c00; } /* 주황색: 배송 준비 중 */
-        .status-shipped { color: #28a745; } /* 녹색: 배송 완료 */
+        .status-pending { color: #ff8c00; }
+        .status-shipped { color: #28a745; }
         .complete-btn {
             padding: 8px 12px;
             font-size: 14px;
@@ -83,29 +89,81 @@
             cursor: pointer;
             background-color: #28a745;
             color: white;
-            justify-self: end; /* 버튼을 셀의 오른쪽 끝으로 */
+            justify-self: end;
         }
         .complete-btn:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
         }
+
+        /* --- 반응형 스타일 --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .order-item {
+                /* 모바일에서는 1열로 변경하여 세로로 쌓이게 함 */
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 15px;
+            }
+            .order-item h3 {
+                font-size: 18px;
+            }
+            .order-item p {
+                font-size: 13px;
+            }
+            .complete-btn {
+                /* 버튼을 오른쪽 정렬 대신 전체 너비로 변경하여 누르기 쉽게 함 */
+                justify-self: stretch;
+                margin-top: 10px;
+                padding: 12px;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <h1>주문 관리 대시보드</h1>
-    <div id="controls">
-        <button id="refresh-btn">새로고침</button>
+    <!-- 비밀번호를 맞혀야만 이 div의 내용이 보이게 됨 -->
+    <div id="dashboard-content" class="hidden">
+        <h1>주문 관리 대시보드</h1>
+        <div id="controls">
+            <button id="refresh-btn">새로고침</button>
+        </div>
+        <ul id="order-list">
+            <!-- 주문 목록이 여기에 동적으로 생성됩니다. -->
+        </ul>
     </div>
-
-    <ul id="order-list">
-        <!-- 주문 목록이 여기에 동적으로 생성됩니다. -->
-    </ul>
 
     <script>
         const orderList = document.getElementById('order-list');
         const refreshBtn = document.getElementById('refresh-btn');
-        const SERVER_URL = 'https://bicrome-vip-page.onrender.com'; // 서버 주소
+        const dashboardContent = document.getElementById('dashboard-content');
+        
+        // 중요: 이 주소는 Render.com에 배포한 Web Service의 주소여야 합니다.
+        const SERVER_URL = 'https://bicrome-vip-page.onrender.com';
+
+        /********************************************/
+        /*      비밀번호 확인 기능 (추가됨)           */
+        /********************************************/
+        function checkPassword() {
+            const correctPassword = "eoqkr!";
+            const userInput = prompt("관리자 페이지에 접속하려면 비밀번호를 입력하세요:");
+
+            if (userInput === correctPassword) {
+                // 비밀번호가 맞으면 숨겨진 콘텐츠를 보여줌
+                dashboardContent.classList.remove('hidden');
+                // 주문 목록을 불러옴
+                fetchAndRenderOrders();
+            } else if (userInput !== null) { // 사용자가 '취소'를 누르지 않았을 때
+                alert("비밀번호가 틀렸습니다. 접근할 수 없습니다.");
+                // 원한다면 다른 페이지로 리디렉션할 수도 있습니다.
+                // window.location.href = "https://www.google.com";
+            }
+        }
 
         // 서버에서 주문 목록을 가져와 화면에 렌더링하는 함수
         async function fetchAndRenderOrders() {
@@ -114,7 +172,7 @@
                 if (!response.ok) throw new Error('서버에서 데이터를 가져오는 데 실패했습니다.');
                 
                 const orders = await response.json();
-                orderList.innerHTML = ''; // 기존 목록 초기화
+                orderList.innerHTML = '';
 
                 if (orders.length === 0) {
                     orderList.innerHTML = '<li>접수된 주문이 없습니다.</li>';
@@ -125,7 +183,6 @@
                     const li = document.createElement('li');
                     li.className = 'order-item';
                     li.dataset.orderId = order.id;
-
                     const isShipped = order.status === '배송 완료';
 
                     li.innerHTML = `
@@ -150,7 +207,7 @@
             }
         }
 
-        // '배송 완료 처리' 버튼 클릭 이벤트 처리 (이벤트 위임)
+        // '배송 완료 처리' 버튼 클릭 이벤트 처리
         orderList.addEventListener('click', async (event) => {
             if (event.target.classList.contains('complete-btn') && !event.target.disabled) {
                 const orderItem = event.target.closest('.order-item');
@@ -158,13 +215,11 @@
 
                 if (confirm(`주문 번호 #${orderId}를 '배송 완료'로 처리하시겠습니까?`)) {
                     try {
-                        const response = await fetch(`${SERVER_URL}/api/orders/${orderId}/complete`, {
-                            method: 'PATCH',
-                        });
+                        const response = await fetch(`${SERVER_URL}/api/orders/${orderId}/complete`, { method: 'PATCH' });
                         if (!response.ok) throw new Error('상태 업데이트에 실패했습니다.');
                         
                         alert('성공적으로 처리되었습니다.');
-                        fetchAndRenderOrders(); // 목록 새로고침
+                        fetchAndRenderOrders();
                     } catch (error) {
                         console.error('상태 업데이트 오류:', error);
                         alert(`오류: ${error.message}`);
@@ -176,8 +231,8 @@
         // 새로고침 버튼 이벤트
         refreshBtn.addEventListener('click', fetchAndRenderOrders);
 
-        // 페이지가 처음 로드될 때 주문 목록을 가져옴
-        fetchAndRenderOrders();
+        // 페이지가 처음 로드될 때 비밀번호 확인 함수를 실행
+        checkPassword();
     </script>
 </body>
 </html>
