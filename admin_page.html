@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주문 관리 대시보드 (오류 수정)</title>
+    <title>주문 관리 대시보드 (오류 수정 최종)</title>
     <style>
         /* CSS 스타일은 이전과 동일합니다. */
         body {
@@ -80,10 +80,7 @@
         const resetDbBtn = document.getElementById('reset-db-btn');
         const dashboardContent = document.getElementById('dashboard-content');
         
-        /********************************************/
-        /*      서버 주소 선언 (수정됨)               */
-        /********************************************/
-        // 중요: 이 주소는 Render.com에 배포한 Web Service의 실제 주소여야 합니다.
+        // 이 주소가 본인의 실제 Web Service 주소인지 다시 한번 확인해주세요!
         const SERVER_URL = 'https://bicrome-vip-page.onrender.com';
 
         function checkPassword() {
@@ -145,15 +142,41 @@
 
             if (target.classList.contains('complete-btn') && !target.disabled) {
                 if (confirm(`주문 번호 #${orderId}를 '배송 완료'로 처리하시겠습니까?`)) {
-                    await fetch(`${SERVER_URL}/api/orders/${orderId}/complete`, { method: 'PATCH' });
-                    fetchAndRenderOrders();
+                    // 배송 완료 처리 로직 (오류 처리 추가)
+                    try {
+                        const response = await fetch(`${SERVER_URL}/api/orders/${orderId}/complete`, { method: 'PATCH' });
+                        if (!response.ok) throw new Error('배송 처리 실패');
+                        fetchAndRenderOrders();
+                    } catch (error) {
+                        alert(error.message);
+                    }
                 }
             }
 
+            /********************************************/
+            /*      삭제 버튼 로직 (개선됨)             */
+            /********************************************/
             if (target.classList.contains('delete-btn')) {
                 if (confirm(`주문 번호 #${orderId}가 삭제됩니다. 정말 삭제하시겠습니까?`)) {
-                    await fetch(`${SERVER_URL}/api/orders/${orderId}`, { method: 'DELETE' });
-                    fetchAndRenderOrders();
+                    try {
+                        // 1. 서버에 삭제 요청을 보낸다.
+                        const response = await fetch(`${SERVER_URL}/api/orders/${orderId}`, { method: 'DELETE' });
+                        
+                        // 2. 서버의 응답을 확인한다.
+                        if (!response.ok) {
+                            // 서버가 실패 응답(404, 500 등)을 보냈을 경우
+                            throw new Error('서버에서 삭제하는 데 실패했습니다.');
+                        }
+                        
+                        // 3. 삭제에 성공했을 때만 화면을 새로고침한다.
+                        alert('주문이 성공적으로 삭제되었습니다.');
+                        fetchAndRenderOrders();
+
+                    } catch (error) {
+                        // 네트워크 오류 등으로 서버에 요청 자체가 실패했을 경우
+                        console.error('삭제 요청 실패:', error);
+                        alert(error.message);
+                    }
                 }
             }
         });
@@ -161,18 +184,17 @@
         resetDbBtn.addEventListener('click', async () => {
             if (confirm('모든 주문 정보가 영구적으로 사라집니다. 정말 초기화하시겠습니까?')) {
                 try {
-                    await fetch(`${SERVER_URL}/api/orders/all`, { method: 'DELETE' });
+                    const response = await fetch(`${SERVER_URL}/api/orders/all`, { method: 'DELETE' });
+                    if (!response.ok) throw new Error('초기화 실패');
                     alert('데이터베이스가 성공적으로 초기화되었습니다.');
                     fetchAndRenderOrders();
                 } catch (error) {
-                    alert('초기화에 실패했습니다.');
+                    alert(error.message);
                 }
             }
         });
 
         refreshBtn.addEventListener('click', fetchAndRenderOrders);
-        
-        // 페이지가 로드되면 바로 비밀번호 확인 함수를 실행합니다.
         checkPassword();
     </script>
 </body>
