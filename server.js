@@ -14,6 +14,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Debug logging (enabled when DEBUG=true in env)
+const DEBUG = process.env.DEBUG === 'true' || false;
+if (DEBUG) {
+    app.use((req, res, next) => {
+        try {
+            console.log(`[${new Date().toISOString()}] INCOMING ${req.method} ${req.originalUrl} - params: ${JSON.stringify(req.params || {})} body: ${JSON.stringify(req.body || {})}`);
+        } catch (e) {
+            console.log('DEBUG LOG ERROR', e);
+        }
+        next();
+    });
+} 
+
 // Serve HTML pages with injected SERVER_URL (production sets process.env.SERVER_URL).
 // This keeps the client default as relative paths while allowing the server to inject
 // a canonical API host when deployed (no need to edit source or comment out lines).
@@ -66,6 +79,7 @@ app.get('/', (req, res) => {
 
 // [POST] 새 주문 접수
 app.post('/api/orders', async (req, res) => {
+    if (DEBUG) console.log('HANDLER POST /api/orders', { body: req.body });
     const { quantity, name, phone, address, totalAmount } = req.body;
     if (!quantity || !name || !phone || !address || !totalAmount) {
         return res.status(400).json({ message: '모든 필수 정보가 전송되지 않았습니다.' });
@@ -121,9 +135,10 @@ app.get('/api/orders', async (req, res) => {
 
 // [PATCH] 주문 상태 변경
 app.patch('/api/orders/:id/complete', async (req, res) => {
+    if (DEBUG) console.log('HANDLER PATCH /api/orders/:id/complete', { params: req.params, body: req.body });
     try {
         const id = parseInt(req.params.id, 10);
-        const { trackingNumber, carrier } = req.body || {};
+        const { trackingNumber, carrier } = req.body || {}; 
         if (!useMemoryStore) {
             if (trackingNumber || carrier) {
                 const result = await pool.query(
@@ -158,9 +173,10 @@ app.patch('/api/orders/:id/complete', async (req, res) => {
 
 // [PATCH] 취소 요청 접수 (사용자 요청)
 app.patch('/api/orders/:id/cancel-request', async (req, res) => {
+    if (DEBUG) console.log('HANDLER PATCH /api/orders/:id/cancel-request', { params: req.params, body: req.body });
     try {
         const id = parseInt(req.params.id, 10);
-        const reason = (req.body && req.body.reason) ? req.body.reason : '';
+        const reason = (req.body && req.body.reason) ? req.body.reason : ''; 
         if (!useMemoryStore) {
             const result = await pool.query(
                 `UPDATE orders SET status = '취소 요청', cancellation_reason = $2 WHERE id = $1 RETURNING *`,
@@ -189,6 +205,7 @@ app.patch('/api/orders/:id/cancel-request', async (req, res) => {
 
 // [PATCH] 관리자 취소 처리: 주문을 '취소 완료'로 변경하고(선택적으로 사유 저장)
 app.patch('/api/orders/:id/cancel', async (req, res) => {
+    if (DEBUG) console.log('HANDLER PATCH /api/orders/:id/cancel', { params: req.params, body: req.body });
     try {
         const id = parseInt(req.params.id, 10);
         const reason = (req.body && req.body.reason) ? req.body.reason : null;
