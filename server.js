@@ -16,10 +16,13 @@ app.use(express.json());
 
 // Debug logging (enabled when DEBUG=true in env)
 const DEBUG = process.env.DEBUG === 'true' || false;
+// Instance identifier to distinguish between multiple instances
+const INSTANCE_ID = process.env.INSTANCE_ID || `${process.pid}-${Math.random().toString(36).slice(2,8)}`;
 if (DEBUG) {
     app.use((req, res, next) => {
         try {
-            console.log(`[${new Date().toISOString()}] INCOMING ${req.method} ${req.originalUrl} - params: ${JSON.stringify(req.params || {})} body: ${JSON.stringify(req.body || {})}`);
+            const forwarded = req.headers['x-forwarded-for'] || req.connection.remoteAddress || '';
+            console.log(`[${new Date().toISOString()}] INCOMING [instance:${INSTANCE_ID}] ${req.method} ${req.originalUrl} - host: ${req.headers.host} ip: ${forwarded} params: ${JSON.stringify(req.params || {})} body: ${JSON.stringify(req.body || {})}`);
         } catch (e) {
             console.log('DEBUG LOG ERROR', e);
         }
@@ -44,6 +47,9 @@ function injectServerUrl(html) {
 // Debug status endpoint (safe-ish): shows whether DEBUG is true and whether memory store is used
 app.get('/_debug/status', (req, res) => {
     return res.json({
+        instanceId: INSTANCE_ID,
+        pid: process.pid,
+        nodeEnv: process.env.NODE_ENV || null,
         debug: DEBUG,
         useMemoryStore: useMemoryStore,
         serverUrlInjected: !!process.env.SERVER_URL,
