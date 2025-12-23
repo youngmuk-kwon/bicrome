@@ -167,7 +167,8 @@ app.patch('/api/orders/:id/complete', async (req, res) => {
         }
     } catch (err) {
         console.error('Error updating order status:', err.stack || err);
-        res.status(500).json({ message: '주문 상태 업데이트에 실패했습니다.' });
+        // Return more info when DEBUG is enabled
+        res.status(500).json({ message: DEBUG ? (err.message || err.stack || '주문 상태 업데이트 중 예외가 발생했습니다.') : '주문 상태 업데이트에 실패했습니다.' });
     }
 });
 
@@ -199,7 +200,7 @@ app.patch('/api/orders/:id/cancel-request', async (req, res) => {
         }
     } catch (err) {
         console.error('Error setting cancel request:', err.stack || err);
-        res.status(500).json({ message: '취소 요청 처리에 실패했습니다.' });
+        res.status(500).json({ message: DEBUG ? (err.message || err.stack || '취소 요청 처리 중 예외가 발생했습니다.') : '취소 요청 처리에 실패했습니다.' });
     }
 });
 
@@ -231,7 +232,7 @@ app.patch('/api/orders/:id/cancel', async (req, res) => {
         }
     } catch (err) {
         console.error('Error cancelling order:', err.stack || err);
-        res.status(500).json({ message: '주문 취소 처리에 실패했습니다.' });
+        res.status(500).json({ message: DEBUG ? (err.message || err.stack || '주문 취소 처리 중 예외가 발생했습니다.') : '주문 취소 처리에 실패했습니다.' });
     }
 });
 
@@ -334,6 +335,15 @@ const startServer = async () => {
         process.exit(1);
     }
 };
+
+// --- 전역 에러 핸들러: JSON 파싱 등 미처리 예외를 잡아 로깅하고 JSON 응답을 반환합니다. ---
+app.use((err, req, res, next) => {
+    console.error('Global error handler:', err.stack || err);
+    if (err.type === 'entity.parse.failed') {
+        return res.status(400).json({ message: DEBUG ? (err.message || '잘못된 JSON') : '잘못된 요청입니다.' });
+    }
+    res.status(500).json({ message: DEBUG ? (err.message || err.stack || '서버 내부 오류') : '서버 오류가 발생했습니다.' });
+});
 
 // --- 애플리케이션 실행 ---
 startServer();
