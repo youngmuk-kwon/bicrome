@@ -1,4 +1,6 @@
-프로젝트 구조
+- SERVER_URL = 'https://bicrome-vip-service.onrender.com';
+
+[프로젝트 구조]
 아래와 같이 3개의 파일을 한 폴더에 만들어 주세요.
 
 plaintext
@@ -195,7 +197,10 @@ html
             const data = Object.fromEntries(formData.entries());
 
             try {
-                const response = await fetch('http://localhost:3000/api/orders', {
+                // 기본적으로 상대 경로를 사용합니다. 필요 시 배포 환경에서 window.SERVER_URL 또는
+                // <body data-server-url="https://your-domain.com"> 로 오버라이드할 수 있습니다.
+                const SERVER_URL = (typeof window.SERVER_URL !== 'undefined') ? window.SERVER_URL : (document.body.dataset.serverUrl || '');
+                const response = await fetch(`${SERVER_URL}/api/orders`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -260,7 +265,9 @@ html
         // 서버에서 주문 목록을 가져와 화면에 표시하는 함수
         async function fetchOrders() {
             try {
-                const response = await fetch('http://localhost:3000/api/orders');
+                // 상대 경로(또는 오버라이드 가능한 SERVER_URL)를 사용
+                const SERVER_URL = (typeof window.SERVER_URL !== 'undefined') ? window.SERVER_URL : (document.body.dataset.serverUrl || '');
+                const response = await fetch(`${SERVER_URL}/api/orders`);
                 const orders = await response.json();
 
                 orderList.innerHTML = ''; // 기존 목록 초기화
@@ -303,7 +310,8 @@ html
 
                 if (confirm(`주문 번호 #${orderId}를 '배송 완료' 처리하시겠습니까?`)) {
                     try {
-                        const response = await fetch(`http://localhost:3000/api/orders/${orderId}/complete`, {
+                        const SERVER_URL = (typeof window.SERVER_URL !== 'undefined') ? window.SERVER_URL : (document.body.dataset.serverUrl || '');
+                        const response = await fetch(`${SERVER_URL}/api/orders/${orderId}/complete`, {
                             method: 'PATCH',
                         });
 

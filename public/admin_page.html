@@ -28,6 +28,7 @@
         #order-list { max-width: 1200px; margin: 0 auto; padding: 0; list-style: none; }
         .order-item {
             background: #fff; border: 1px solid #ddd; border-radius: 8px;
+            transition: border-color 0.15s, background 0.15s;
             margin-bottom: 15px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             display: grid; grid-template-columns: repeat(3, 1fr);
             gap: 15px 20px; align-items: center;
@@ -36,6 +37,9 @@
             grid-column: 1 / -1; margin: 0 0 15px 0; padding-bottom: 15px;
             border-bottom: 1px solid #eee; color: #007bff;
         }
+        /* modal styles for tracking input */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width:100%; height:100%; background: rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:1100; }
+        .modal-content { background: #fff; padding:18px; border-radius:8px; width: 90%; max-width:420px; }
         .order-item p { margin: 0; font-size: 14px; color: #555; line-height: 1.5; }
         .order-item p strong { color: #333; display: inline-block; width: 70px; }
         .order-item .address-info { grid-column: 1 / -1; }
@@ -51,7 +55,11 @@
         }
         .complete-btn { background-color: #28a745; }
         .complete-btn:disabled { background-color: #6c757d; cursor: not-allowed; }
-        .delete-btn { background-color: #6c757d; }
+        .cancel-btn { background-color: #6c757d; }
+        .cancel-request { border-color: #dc3545; background: #fff5f5; }
+        /* 취소 완료된 주문은 더 어둡게 표시 */
+        .cancelled { background: #e9ecef; border-color: #999; opacity: 0.95; }
+        .status-cancelled { color: #6c757d; font-weight: bold; }
 
         @media (max-width: 768px) {
             body { padding: 10px; }
@@ -64,7 +72,7 @@
         }
     </style>
 </head>
-<body>
+<body data-server-url="">
     <div id="dashboard-content" class="hidden">
         <h1>주문 관리 대시보드</h1>
         <div id="controls">
@@ -80,8 +88,14 @@
         const resetDbBtn = document.getElementById('reset-db-btn');
         const dashboardContent = document.getElementById('dashboard-content');
         
-        // 이 주소가 본인의 실제 Web Service 주소인지 다시 한번 확인해주세요!
-        const SERVER_URL = 'https://bicrome-vip-service.onrender.com';
+        // 기본값: 빈 문자열(상대 경로 사용). 필요하면 전역 변수 또는 body의 data-server-url 속성으로 오버라이드 가능.
+        // 예: <body data-server-url="https://example.com"> 또는 브라우저 콘솔에서 window.SERVER_URL = 'https://...';
+        let SERVER_URL = (typeof window.SERVER_URL !== 'undefined') ? window.SERVER_URL : (document.body.dataset.serverUrl || '');
+        // 파일로 열어 테스트할 경우(file://) 상대 경로는 실패하므로 localhost로 폴백합니다.
+        if (!SERVER_URL && window.location.protocol === 'file:') {
+            SERVER_URL = 'http://localhost:3000';
+            console.info('경고: 파일로 열려 있습니다. 테스트를 위해 SERVER_URL을 http://localhost:3000 로 설정합니다.');
+        }
 
         function checkPassword() {
             const correctPassword = "eoqkr!";
@@ -109,28 +123,46 @@
                     const li = document.createElement('li');
                     li.className = 'order-item';
                     li.dataset.orderId = order.id;
+                    li.dataset.cancelReason = order.cancellation_reason || '';
                     const isShipped = order.status === '배송 완료';
+                    const isCancelReq = order.status === '취소 요청';
+                    const isCancelled = order.status === '취소 완료';
                     li.innerHTML = `
                         <h3>주문 번호: #${order.id}</h3>
                         <p><strong>주문일시:</strong> ${new Date(order.order_date).toLocaleString('ko-KR')}</p>
                         <p><strong>주문자:</strong> ${order.buyer_name}</p>
                         <p><strong>연락처:</strong> ${order.phone}</p>
+                            <p><strong>운송장:</strong> ${order.tracking_carrier ? order.tracking_carrier + ' · ' : ''}${order.tracking_number || '-'}</p>
                         <p><strong>상품명:</strong> ${order.product_name}</p>
                         <p><strong>수량:</strong> ${order.quantity}개</p>
                         <p><strong>총 금액:</strong> ${order.total_amount}</p>
                         <p class="address-info"><strong>배송지:</strong> ${order.address}</p>
-                        <p><strong>상태:</strong> <span class="status ${isShipped ? 'status-shipped' : 'status-pending'}">${order.status}</span></p>
+                            <p><strong>상태:</strong> <span class="status ${isShipped ? 'status-shipped' : (isCancelReq ? 'status-pending' : (isCancelled ? 'status-cancelled' : 'status-pending'))}">${order.status}</span></p>
                         <div class="order-actions">
-                            <button class="action-btn complete-btn" ${isShipped ? 'disabled' : ''}>
+                            <button class="action-btn complete-btn" ${isShipped || isCancelled ? 'disabled' : ''}>
                                 ${isShipped ? '처리 완료' : '배송 완료 처리'}
                             </button>
-                            <button class="action-btn delete-btn">삭제</button>
+                            ${isCancelReq ? `<button class="action-btn view-cancel-btn" style="background:#dc3545;">취소 사유 보기</button>` : ''}
+                            <button class="action-btn cancel-btn">주문 취소</button>
                         </div>
                     `;
+                    if (isCancelReq) li.classList.add('cancel-request');
+                    if (isCancelled) li.classList.add('cancelled');
+                    // expose tracking info for modal prefill
+                    li.dataset.trackingNumber = order.tracking_number || '';
+                    li.dataset.trackingCarrier = order.tracking_carrier || '';
+                    if (isCancelled) li.classList.add('cancelled');
                     orderList.appendChild(li);
                 });
             } catch (error) {
-                orderList.innerHTML = `<li>오류: ${error.message}</li>`;
+                console.error('주문 목록 로딩 실패:', error);
+                // 사용자에게 더 친절한 안내 메시지 제공
+                orderList.innerHTML = `
+                    <li>
+                        오류: ${error.message} <br>
+                        • 서버가 실행 중인지 확인하세요: <code>node server.js</code><br>
+                        • 또는 브라우저에서 <a href="http://localhost:3000/admin_page.html">http://localhost:3000/admin_page.html</a>로 접속해 보세요.
+                    </li>`;
             }
         }
 
@@ -142,40 +174,48 @@
 
             if (target.classList.contains('complete-btn') && !target.disabled) {
                 if (confirm(`주문 번호 #${orderId}를 '배송 완료'로 처리하시겠습니까?`)) {
-                    // 배송 완료 처리 로직 (오류 처리 추가)
-                    try {
-                        const response = await fetch(`${SERVER_URL}/api/orders/${orderId}/complete`, { method: 'PATCH' });
-                        if (!response.ok) throw new Error('배송 처리 실패');
-                        fetchAndRenderOrders();
-                    } catch (error) {
-                        alert(error.message);
-                    }
+                    // Show modal to input carrier + tracking number
+                    const modal = document.getElementById('trackingModal');
+                    const carrierSelect = document.getElementById('tracking-carrier');
+                    const trackInput = document.getElementById('tracking-number');
+                    modal.dataset.orderId = orderId;
+                    // Prefill from dataset if present
+                    carrierSelect.value = orderItem.dataset.trackingCarrier || '';
+                    trackInput.value = orderItem.dataset.trackingNumber || '';
+                    modal.style.display = 'flex';
+                    carrierSelect.focus();
                 }
             }
 
-            /********************************************/
-            /*      삭제 버튼 로직 (개선됨)             */
-            /********************************************/
-            if (target.classList.contains('delete-btn')) {
-                if (confirm(`주문 번호 #${orderId}가 삭제됩니다. 정말 삭제하시겠습니까?`)) {
-                    try {
-                        // 1. 서버에 삭제 요청을 보낸다.
-                        const response = await fetch(`${SERVER_URL}/api/orders/${orderId}`, { method: 'DELETE' });
-                        
-                        // 2. 서버의 응답을 확인한다.
-                        if (!response.ok) {
-                            // 서버가 실패 응답(404, 500 등)을 보냈을 경우
-                            throw new Error('서버에서 삭제하는 데 실패했습니다.');
-                        }
-                        
-                        // 3. 삭제에 성공했을 때만 화면을 새로고침한다.
-                        alert('주문이 성공적으로 삭제되었습니다.');
-                        fetchAndRenderOrders();
+            // 취소 사유 보기 버튼
+            if (target.classList.contains('view-cancel-btn')) {
+                const reason = orderItem.dataset.cancelReason || '(사유 없음)';
+                alert(`취소 사유:\n\n${reason}`);
+            }
 
+            /********************************************/
+            /*      주문 취소 버튼 로직 (개선됨)         */
+            /********************************************/
+            if (target.classList.contains('cancel-btn')) {
+                if (confirm(`주문 번호 #${orderId}을(를) 취소하시겠습니까?`)) {
+                    // 선택적 취소 사유 입력
+                    const reason = prompt('취소 사유를 입력하세요 (선택):');
+                    try {
+                        target.disabled = true;
+                        const response = await fetch(`${SERVER_URL}/api/orders/${orderId}/cancel`, {
+                            method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason })
+                        });
+                        if (!response.ok) {
+                            const r = await response.json().catch(() => ({}));
+                            throw new Error(r.message || '취소 처리 실패');
+                        }
+                        alert('주문이 취소 처리되었습니다.');
+                        fetchAndRenderOrders();
                     } catch (error) {
-                        // 네트워크 오류 등으로 서버에 요청 자체가 실패했을 경우
-                        console.error('삭제 요청 실패:', error);
-                        alert(error.message);
+                        console.error('취소 처리 실패:', error);
+                        alert(error.message || '취소 처리 중 오류가 발생했습니다.');
+                    } finally {
+                        target.disabled = false;
                     }
                 }
             }
@@ -196,6 +236,63 @@
 
         refreshBtn.addEventListener('click', fetchAndRenderOrders);
         checkPassword();
+
+        // --- Tracking modal logic ---
+        // Insert modal markup into body
+        const trackingModalHtml = `
+            <div class="modal-overlay" id="trackingModal">
+                <div class="modal-content">
+                    <h3>배송 정보 입력</h3>
+                    <div style="margin:10px 0;">
+                        <label style="display:block; margin-bottom:6px; font-weight:600;">택배사</label>
+                        <select id="tracking-carrier" style="width:100%; padding:8px; font-size:14px;">
+                            <option value="">선택 (없음)</option>
+                            <option value="대한통운">대한통운</option>
+                            <option value="우체국">우체국</option>
+                        </select>
+                    </div>
+                    <div style="margin:10px 0;">
+                        <label style="display:block; margin-bottom:6px; font-weight:600;">송장번호</label>
+                        <input id="tracking-number" type="text" style="width:100%; padding:8px; font-size:14px;" placeholder="송장번호를 입력하세요 (선택)">
+                    </div>
+                    <div style="display:flex; gap:10px; margin-top:12px;">
+                        <button id="tracking-confirm" class="control-btn" style="flex:1; background:#28a745;">확인</button>
+                        <button id="tracking-cancel" class="control-btn" style="flex:1; background:#6c757d;">취소</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', trackingModalHtml);
+
+        const trackingModal = document.getElementById('trackingModal');
+        const trackingConfirm = document.getElementById('tracking-confirm');
+        const trackingCancel = document.getElementById('tracking-cancel');
+
+        trackingCancel.addEventListener('click', () => { trackingModal.style.display = 'none'; });
+
+        trackingConfirm.addEventListener('click', async () => {
+            const orderId = trackingModal.dataset.orderId;
+            const carrier = document.getElementById('tracking-carrier').value || null;
+            const trackingNumber = document.getElementById('tracking-number').value.trim() || null;
+            try {
+                trackingConfirm.disabled = true;
+                const resp = await fetch(`${SERVER_URL}/api/orders/${orderId}/complete`, {
+                    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackingNumber, carrier })
+                });
+                if (!resp.ok) {
+                    const r = await resp.json().catch(() => ({}));
+                    throw new Error(r.message || '배송 처리 실패');
+                }
+                trackingModal.style.display = 'none';
+                alert('배송 완료 처리되었습니다.');
+                fetchAndRenderOrders();
+            } catch (err) {
+                console.error('배송 처리 오류:', err);
+                alert(err.message || '배송 처리 중 오류가 발생했습니다.');
+            } finally {
+                trackingConfirm.disabled = false;
+            }
+        });
     </script>
 </body>
 </html>

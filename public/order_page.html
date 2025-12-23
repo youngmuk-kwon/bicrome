@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>바이크롬 코 유산균 VIP 구매 페이지 (동작 오류 수정)</title>
+    <title>바이크롬 코 유산균 임직원 구매 페이지 (동작 오류 수정)</title>
     <style>
         /* --- CSS 스타일은 이전과 동일하게 유지됩니다. --- */
         body, h1, h2, p, ul, li, dl, dt, dd, input, button {
@@ -91,6 +91,37 @@
             width: 100%; height: 100%; background-color: rgba(0,0,0,0.6);
             justify-content: center; align-items: center; z-index: 1000;
         }
+        /* 주문 확인 버튼 (상단 우측) */
+        #check-order-btn {
+            position: fixed; top: 18px; right: 18px; z-index: 1100;
+            background: #ff7a00; color: #fff; border: none; padding: 8px 12px;
+            border-radius: 6px; cursor: pointer; font-weight: 700;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        }
+        #check-order-btn:hover { opacity: 0.95; }
+
+        /* 주문 조회 결과 카드 */
+        .order-card { border: 1px solid #e7e7e7; padding: 12px; margin-bottom: 10px; border-radius: 6px; }
+        .order-card .meta { font-size: 13px; color: #666; margin-bottom: 6px; }
+        .order-card .main { font-weight: 600; }
+        .order-card.cancelled { background: #f2f2f2; border-color: #ccc; opacity: 0.95; }
+        .track-btn { display:inline-block; margin-left:8px; padding:3px 8px; background:#007bff; color:#fff; border-radius:4px; text-decoration:none; font-size:12px; }
+        .address-search-btn { padding:8px 12px; background:#007bff; color:#fff; border:none; border-radius:4px; cursor:pointer; }
+        .address-row { display:flex; gap:8px; align-items:center; }
+        .address-row input[type="text"] { flex:1; min-width:0; }
+        .address-search-btn { flex:0 0 110px; }
+        input[readonly] { background:#f5f5f5; }
+        .cancel-order-btn { padding: 8px 12px; background:#dc3545; color:#fff; border:none; border-radius:4px; cursor:pointer; }
+        @media (max-width: 768px) {
+            .address-search-btn { flex:0 0 90px; padding:8px 10px; font-size:14px; }
+            .address-row { gap:6px; }
+            .address-row input[type="text"] { font-size:14px; }
+        }
+        @media (max-width: 420px) {
+            .address-row { flex-direction: column; align-items: stretch; }
+            .address-search-btn { flex: none; width: 100%; }
+            .address-row input[type="text"] { width: 100%; }
+        }
         .modal-content {
             background-color: #fff; padding: 20px; border-radius: 8px;
             width: 90%; max-width: 500px;
@@ -127,6 +158,7 @@
             .page-title {
                 font-size: 24px; margin-top: 20px; margin-bottom: 20px; padding: 0 15px;
             }
+            #check-order-btn { top: 12px; right: 12px; padding: 6px 10px; }
             #product-container {
                 width: 100%; flex-direction: column; margin: 0; gap: 0;
                 padding-bottom: 80px;
@@ -137,8 +169,10 @@
         }
     </style>
 </head>
-<body>
+<body data-server-url="">
     <h1 class="page-title">바이크롬 코 유산균 VIP 구매 페이지</h1>
+    <!-- 주문 확인 버튼 (상단 우측) -->
+    <button id="check-order-btn" title="나의 주문 내역">나의 주문 내역</button>
 
     <div id="product-container">
         <div id="product-details">
@@ -186,8 +220,12 @@
                         <input type="tel" id="buyer-phone" placeholder="010-1234-5678" required>
                     </div>
                     <div class="form-group">
-                        <label for="buyer-address">주소</label>
-                        <input type="text" id="buyer-address" required>
+                        <label for="buyer-address-main">주소</label>
+                        <div class="address-row">
+                            <input type="text" id="buyer-address-main" readonly placeholder="도로명 또는 지번으로 검색" required>
+                            <button type="button" id="address-search-btn" class="address-search-btn">주소 검색</button>
+                        </div>
+                        <input type="text" id="buyer-address-detail" placeholder="상세 주소(예: 건물명, 동/호수, 층 등)" required style="margin-top:8px;">
                     </div>
                 </div>
                 <div class="total-price-section">
@@ -199,6 +237,41 @@
                     <button type="button" id="cancel-btn">취소</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- 주문 조회 모달 -->
+    <div class="modal-overlay" id="checkOrderModal">
+        <div class="modal-content">
+            <h2>주문 확인</h2>
+            <form id="check-order-form">
+                <div class="form-group">
+                    <label for="check-name">주문자 이름</label>
+                    <input type="text" id="check-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="check-phone">전화번호</label>
+                    <input type="tel" id="check-phone" placeholder="010-1234-5678" required>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:12px;">
+                    <button type="submit" id="check-submit-btn" style="flex:1; padding:14px; font-size:15px;">조회</button>
+                    <button type="button" id="check-cancel-btn" style="flex:1; padding:14px; font-size:15px; background:#6c757d; color:#fff;">닫기</button>
+                </div>
+            </form>
+
+            <div id="check-results" style="margin-top:18px; max-height:300px; overflow:auto;"></div>
+        </div>
+    </div>
+
+    <!-- 결제 안내 확인 모달 -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal-content">
+            <h2>결제 안내</h2>
+            <p id="payment-instruction" style="margin-bottom:16px;">우리 은행 : 000-00000-00000 아무개로 해당 금액을 입금해주세요.</p>
+            <div style="display:flex; gap:10px;">
+                <button id="payment-confirm-btn" style="flex:1; background:#28a745; color:#fff; padding:16px; font-size:16px; border:none; border-radius:6px; cursor:pointer;">확인</button>
+                <button id="payment-cancel-btn" style="flex:1; background:#6c757d; color:#fff; padding:16px; font-size:16px; border:none; border-radius:6px; cursor:pointer;">취소</button>
+            </div>
         </div>
     </div>
 
@@ -215,8 +288,17 @@
     const pcOpenModalBtn = document.getElementById('pc-open-modal-btn');
     const mobileOpenModalBtn = document.getElementById('mobile-open-modal-btn');
     
-    const SERVER_URL = 'https://bicrome-vip-service.onrender.com';
+    // 기본값: 빈 문자열(상대 경로 사용). 필요하면 전역 변수 또는 <body data-server-url="..."></body>로 오버라이드 가능.
+    let SERVER_URL = (typeof window.SERVER_URL !== 'undefined') ? window.SERVER_URL : (document.body.dataset.serverUrl || '');
+    // 파일로 열어 테스트할 경우(file://) 상대 경로는 실패하므로 localhost로 폴백합니다.
+    if (!SERVER_URL && window.location.protocol === 'file:') {
+        SERVER_URL = 'http://localhost:3000';
+        console.info('경고: 파일로 열려 있습니다. 테스트를 위해 SERVER_URL을 http://localhost:3000 로 설정합니다.');
+    }
     const unitPrice = 57000;
+
+    // helper to build API path (uses relative path by default so local 서버에 요청됩니다)
+    function api(path) { return (SERVER_URL || '') + path; }
 
     // --- 총 가격 업데이트 함수 ---
     function updateTotalPrice() {
@@ -255,13 +337,24 @@
     });
 
     // --- 주문 제출 로직 ---
-    orderForm.addEventListener('submit', async (event) => {
+    // pendingOrderData는 결제 확인 후 실제 전송을 위해 저장됩니다.
+    let pendingOrderData = null;
+    const paymentModal = document.getElementById('paymentModal');
+    const paymentConfirmBtn = document.getElementById('payment-confirm-btn');
+    const paymentCancelBtn = document.getElementById('payment-cancel-btn');
+
+    orderForm.addEventListener('submit', (event) => {
         event.preventDefault();
+        const addressMain = document.getElementById('buyer-address-main').value.trim();
+        const addressDetail = document.getElementById('buyer-address-detail').value.trim();
+        if (!addressMain) { alert('주소를 검색해주세요.'); return; }
+        if (!addressDetail) { alert('상세 주소를 입력해주세요.'); return; }
+        const fullAddress = addressMain + (addressDetail ? ' ' + addressDetail : '');
         const orderData = {
             quantity: parseInt(quantityInput.value, 10),
-            name: document.getElementById('buyer-name').value,
-            phone: document.getElementById('buyer-phone').value.replace(/-/g, ''),
-            address: document.getElementById('buyer-address').value,
+            name: document.getElementById('buyer-name').value.trim(),
+            phone: document.getElementById('buyer-phone').value.replace(/-/g, '').trim(),
+            address: fullAddress,
             totalAmount: modalTotalPriceEl.textContent
         };
 
@@ -269,39 +362,233 @@
             alert('주문자 이름, 전화번호, 주소를 모두 입력해주세요.');
             return;
         }
-        
+
+        // 결제 안내 모달에 금액과 안내 문구(줄바꿈 포함)를 표시
+        const instrEl = document.getElementById('payment-instruction');
+        const message = `우리 은행 : 000-00000-00000 홍길동으로 ${orderData.totalAmount}을 입금 후 확인 버튼을 클릭해주세요.\n취소를 원하시면 취소 버튼을 클릭해주세요.\n주문 이력은 우측 상단의 주문 확인에서 확인할 수 있습니다.`;
+        instrEl.innerHTML = message.replace(/\n/g, '<br>');
+
+        pendingOrderData = orderData;
+        paymentModal.style.display = 'flex';
+    });
+
+    function closePaymentModal() {
+        paymentModal.style.display = 'none';
+    }
+
+    paymentCancelBtn.addEventListener('click', () => {
+        closePaymentModal();
+        // 주문 팝업(주문 모달)도 함께 닫기
+        closeModal();
+        pendingOrderData = null;
+        alert('주문이 취소되었습니다.');
+    });
+
+    paymentConfirmBtn.addEventListener('click', async () => {
+        // 사용자가 결제 안내를 확인하고 주문을 진행합니다.
+        closePaymentModal();
+        if (!pendingOrderData) return;
+
         const submitBtn = document.getElementById('submit-order-btn');
         submitBtn.disabled = true;
         submitBtn.textContent = '주문 처리 중...';
+
+        const controller = new AbortController();
+        const TIMEOUT_MS = 15000; // 15 seconds
+        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
         try {
             const response = await fetch(`${SERVER_URL}/api/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData),
+                body: JSON.stringify(pendingOrderData),
+                signal: controller.signal
             });
-            const result = await response.json();
+
+            clearTimeout(timeoutId);
+
+            let result = {};
+            try { result = await response.json(); } catch (e) { try { result = { message: await response.text() }; } catch (ee) { result = {}; } }
+
             if (response.ok) {
                 alert('주문이 성공적으로 접수되었습니다.');
                 orderForm.reset();
+                // 새로 추가된 주소 입력 필드 명시적 초기화
+                const addrMainEl = document.getElementById('buyer-address-main');
+                const addrDetailEl = document.getElementById('buyer-address-detail');
+                if (addrMainEl) addrMainEl.value = '';
+                if (addrDetailEl) addrDetailEl.value = '';
                 quantityInput.value = 1;
                 updateTotalPrice();
                 closeModal();
             } else {
-                alert(`주문 접수 실패: ${result.message}`);
+                alert(`주문 접수 실패: ${result.message || '서버 오류'}`);
             }
         } catch (error) {
-            console.error('서버 통신 오류:', error);
-            alert('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+            if (error.name === 'AbortError') {
+                console.error('주문 요청 시간초과:', error);
+                alert('요청 시간이 초과되었습니다. 서버가 실행 중인지 확인하세요 (예: 터미널에서 `node server.js`).');
+            } else {
+                console.error('서버 통신 오류:', error);
+                alert('서버에 연결할 수 없습니다. 서버가 실행 중인지 확인하고, http://localhost:3000/ 로 접속해 보세요.');
+            }
         } finally {
+            clearTimeout(timeoutId);
             submitBtn.disabled = false;
             submitBtn.textContent = '주문하기';
+            pendingOrderData = null;
         }
     });
 
     // 초기 가격 설정
     updateTotalPrice();
+
+    // --- 주소 검색(다음 우편번호 서비스) ---
+    function openAddressSearch() {
+        try {
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    const main = data.roadAddress || data.jibunAddress || '';
+                    document.getElementById('buyer-address-main').value = main;
+                    // 포커스 상세 주소 입력
+                    document.getElementById('buyer-address-detail').focus();
+                }
+            }).open();
+        } catch (err) {
+            console.error('주소검색 로드 실패:', err);
+            alert('주소 검색 기능을 사용할 수 없습니다. 인터넷 연결을 확인하거나 브라우저를 새로고침 해주세요.');
+        }
+    }
+    // 주소 검색 버튼 이벤트 (버튼 존재시 바인딩)
+    const addressSearchBtn = document.getElementById('address-search-btn');
+    if (addressSearchBtn) addressSearchBtn.addEventListener('click', openAddressSearch);
+
+    // --- 주문 확인 (이름 + 전화번호로 조회) ---
+    const checkOrderBtn = document.getElementById('check-order-btn');
+    const checkOrderModal = document.getElementById('checkOrderModal');
+    const checkCancelBtn = document.getElementById('check-cancel-btn');
+    const checkForm = document.getElementById('check-order-form');
+    const checkResults = document.getElementById('check-results');
+
+    function openCheckModal() { checkOrderModal.style.display = 'flex'; }
+    function closeCheckModal() { checkOrderModal.style.display = 'none'; checkResults.innerHTML = ''; checkForm.reset(); }
+
+    // 배송조회 URL 매핑
+    function getTrackingUrl(carrier, trackingNumber) {
+        if (!trackingNumber) return '#';
+        const num = encodeURIComponent(trackingNumber);
+        if (!carrier) return `https://www.google.com/search?q=${encodeURIComponent(trackingNumber)}`;
+        const c = carrier.toLowerCase();
+        if (c.includes('대한') || c.includes('cj') || c.includes('통운')) {
+            // CJ대한통운
+            return `https://www.cjlogistics.com/ko/tool/parcel/tracking?gnbInvcNo=${num}`;
+        }
+        if (c.includes('우체국') || c.includes('epost') || c.includes('post')) {
+            // 우체국
+            return `https://service.epost.go.kr/trace.RetrieveDomRigiTraceList.comm?sid1=${num}`;
+        }
+        // Fallback: google search
+        return `https://www.google.com/search?q=${encodeURIComponent(carrier + ' ' + trackingNumber)}`;
+    }
+
+    checkOrderBtn.addEventListener('click', openCheckModal);
+    checkCancelBtn.addEventListener('click', closeCheckModal);
+    checkOrderModal.addEventListener('click', (e) => { if (e.target === checkOrderModal) closeCheckModal(); });
+
+    checkForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('check-name').value.trim();
+        const phone = document.getElementById('check-phone').value.replace(/\D/g, '');
+        if (!name || !phone) {
+            alert('이름과 전화번호를 입력해 주세요.');
+            return;
+        }
+
+        checkResults.innerHTML = '<div class="meta">조회 중...</div>';
+
+        try {
+            const res = await fetch(api('/api/orders'));
+            const data = await res.json();
+
+            const matches = (Array.isArray(data) ? data : []).filter(o => {
+                const dbName = (o.buyer_name || '').trim().toLowerCase();
+                const dbPhone = (o.phone || '').replace(/\D/g, '');
+                return dbName === name.toLowerCase() && dbPhone === phone;
+            });
+
+            if (matches.length === 0) {
+                checkResults.innerHTML = '<div class="meta">조회된 주문이 없습니다.</div>';
+            } else {
+                checkResults.innerHTML = matches.map(o => {
+                    const date = o.order_date ? new Date(o.order_date).toLocaleString() : '-';
+                    // 배송 완료면 송장번호 + 택배사 보이기, 취소 요청이면 사유 보여주기, 취소 완료이면 취소 완료 표시
+                    let extra = '';
+                    if (o.status === '배송 완료') {
+                        const carrier = o.tracking_carrier ? `${o.tracking_carrier} · ` : '';
+                        const trackUrl = o.tracking_number ? getTrackingUrl(o.tracking_carrier, o.tracking_number) : '';
+                        const trackLink = o.tracking_number ? `<a class="track-btn" href="${trackUrl}" target="_blank" rel="noopener">배송조회</a>` : '';
+                        extra = `<div class="meta"><strong style="color:#28a745;">배송 완료</strong> · ${carrier}송장번호: ${o.tracking_number || '-'} ${trackLink} · 전화: ${o.phone}</div>`;
+                    } else if (o.status === '취소 요청') {
+                        extra = `<div class="meta" style="color:#dc3545;">취소 요청 접수됨 · 사유: ${o.cancellation_reason || '-'} · 전화: ${o.phone}</div>`;
+                    } else if (o.status === '취소 완료') {
+                        extra = `<div class="meta" style="color:#6c757d;"><strong>취소 완료</strong> · 사유: ${o.cancellation_reason || '-'} · 전화: ${o.phone}</div>`;
+                    } else {
+                        extra = `<div style="margin-top:8px;"><button class="cancel-order-btn" data-id="${o.id}">주문 취소</button></div><div class="meta">전화: ${o.phone}</div>`;
+                    }
+
+                    const cancelledClass = o.status === '취소 완료' ? ' cancelled' : '';
+
+                    return `
+                        <div class="order-card${cancelledClass}" data-order-id="${o.id}" data-order-status="${o.status}" data-cancel-reason="${(o.cancellation_reason||'')}">
+                            <div class="meta">주문번호: ${o.id} · ${date}</div>
+                            <div class="main">${o.product_name} × ${o.quantity}개 — ${o.total_amount}</div>
+                            ${extra}
+                        </div>
+                    `;
+                }).join('');
+            }
+        } catch (err) {
+            console.error('주문 조회 오류:', err);
+            checkResults.innerHTML = '<div class="meta">조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</div>';
+        }
+    });
+
+    // 이벤트 위임: 주문 취소 버튼 처리
+    checkResults.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.cancel-order-btn');
+        if (!btn) return;
+        const orderId = btn.dataset.id;
+        const reason = prompt('취소 사유를 입력해주세요:');
+        if (reason === null) return; // 사용자가 취소함
+        try {
+            btn.disabled = true;
+            const resp = await fetch(api(`/api/orders/${orderId}/cancel-request`), {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason })
+            });
+            if (!resp.ok) {
+                // try to get JSON message, otherwise text
+                let errMsg = '';
+                try { const j = await resp.json(); errMsg = j.message || JSON.stringify(j); } catch (e) { try { errMsg = await resp.text(); } catch (ee) { errMsg = resp.statusText || String(resp.status); } }
+                console.error('취소 요청 실패:', resp.status, errMsg);
+                if (resp.status === 404) {
+                    alert(`취소 요청 실패: 주문을 찾을 수 없습니다 (404). 서버가 최신 코드로 재시작되었는지 확인하세요.`);
+                } else {
+                    alert(`취소 요청 실패: ${errMsg}`);
+                }
+            } else {
+                alert('취소 요청이 접수되었습니다. 관리자 확인 후 처리됩니다.');
+                // 재조회
+                checkForm.dispatchEvent(new Event('submit'));
+            }
+        } catch (err) {
+            console.error('취소 요청 오류:', err);
+            alert('취소 요청 중 오류가 발생했습니다. (네트워크 또는 서버 문제)');
+        } finally {
+            btn.disabled = false;
+        }
+    });
     </script>
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 
 </body>
 </html>
