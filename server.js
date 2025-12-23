@@ -41,6 +41,18 @@ function injectServerUrl(html) {
     });
 }
 
+// Debug status endpoint (safe-ish): shows whether DEBUG is true and whether memory store is used
+app.get('/_debug/status', (req, res) => {
+    return res.json({
+        debug: DEBUG,
+        useMemoryStore: useMemoryStore,
+        serverUrlInjected: !!process.env.SERVER_URL,
+        envSample: {
+            SERVER_URL: process.env.SERVER_URL || null
+        }
+    });
+});
+
 // Serve the main order page with injected config
 app.get(['/','/order_page.html'], (req, res) => {
     const file = path.join(__dirname, 'public', 'order_page.html');
@@ -326,6 +338,7 @@ const startServer = async () => {
         }
 
         console.log('DEBUG: 서버 시작 중...');
+        console.log('DEBUG mode:', DEBUG, 'PORT:', port, 'USE_MEMORY_STORE:', useMemoryStore);
         app.listen(port, () => {
             console.log(`🚀 서버가 포트 ${port}번에서 실행 중입니다. 사용 모드: ${useMemoryStore ? '메모리 스토어(개발용)' : 'PostgreSQL'}`);
         });
