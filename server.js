@@ -18,6 +18,13 @@ app.use(express.json());
 const DEBUG = process.env.DEBUG === 'true' || false;
 // Instance identifier to distinguish between multiple instances
 const INSTANCE_ID = process.env.INSTANCE_ID || `${process.pid}-${Math.random().toString(36).slice(2,8)}`;
+// Always expose instance id in responses so we can correlate which instance handled the request
+app.use((req, res, next) => {
+    res.setHeader('X-Instance-Id', INSTANCE_ID);
+    next();
+});
+
+// Conditional verbose request logging when DEBUG=true
 if (DEBUG) {
     app.use((req, res, next) => {
         try {
@@ -153,6 +160,8 @@ app.get('/api/orders', async (req, res) => {
 
 // [PATCH] 주문 상태 변경
 app.patch('/api/orders/:id/complete', async (req, res) => {
+    // Minimal info log for all instances to trace attempts
+    console.info(`[${new Date().toISOString()}] ATTEMPT COMPLETE [instance:${INSTANCE_ID}]`, { params: req.params, body: req.body });
     if (DEBUG) console.log('HANDLER PATCH /api/orders/:id/complete', { params: req.params, body: req.body });
     try {
         const id = parseInt(req.params.id, 10);
@@ -192,6 +201,7 @@ app.patch('/api/orders/:id/complete', async (req, res) => {
 
 // [PATCH] 취소 요청 접수 (사용자 요청)
 app.patch('/api/orders/:id/cancel-request', async (req, res) => {
+    console.info(`[${new Date().toISOString()}] ATTEMPT CANCEL-REQUEST [instance:${INSTANCE_ID}]`, { params: req.params, body: req.body });
     if (DEBUG) console.log('HANDLER PATCH /api/orders/:id/cancel-request', { params: req.params, body: req.body });
     try {
         const id = parseInt(req.params.id, 10);
@@ -224,6 +234,7 @@ app.patch('/api/orders/:id/cancel-request', async (req, res) => {
 
 // [PATCH] 관리자 취소 처리: 주문을 '취소 완료'로 변경하고(선택적으로 사유 저장)
 app.patch('/api/orders/:id/cancel', async (req, res) => {
+    console.info(`[${new Date().toISOString()}] ATTEMPT CANCEL [instance:${INSTANCE_ID}]`, { params: req.params, body: req.body });
     if (DEBUG) console.log('HANDLER PATCH /api/orders/:id/cancel', { params: req.params, body: req.body });
     try {
         const id = parseInt(req.params.id, 10);
