@@ -96,6 +96,9 @@
             SERVER_URL = 'http://localhost:3000';
             console.info('경고: 파일로 열려 있습니다. 테스트를 위해 SERVER_URL을 http://localhost:3000 로 설정합니다.');
         }
+        // Normalize base server URL (remove trailing slash) and provide api helper
+        const BASE_SERVER = SERVER_URL ? SERVER_URL.replace(/\/+$/, '') : '';
+        function api(path) { return BASE_SERVER + path; }
 
         function checkPassword() {
             const correctPassword = "eoqkr!";
@@ -110,7 +113,7 @@
 
         async function fetchAndRenderOrders() {
             try {
-                const response = await fetch(`${SERVER_URL}/api/orders`);
+                const response = await fetch(api('/api/orders'));
                 if (!response.ok) throw new Error('서버에서 데이터를 가져오는 데 실패했습니다.');
                 
                 const orders = await response.json();
@@ -202,7 +205,7 @@
                     const reason = prompt('취소 사유를 입력하세요 (선택):');
                     try {
                         target.disabled = true;
-                        const response = await fetch(`${SERVER_URL}/api/orders/${orderId}/cancel`, {
+                        const response = await fetch(api(`/api/orders/${orderId}/cancel`), {
                             method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason })
                         });
                         if (!response.ok) {
@@ -224,7 +227,7 @@
         resetDbBtn.addEventListener('click', async () => {
             if (confirm('모든 주문 정보가 영구적으로 사라집니다. 정말 초기화하시겠습니까?')) {
                 try {
-                    const response = await fetch(`${SERVER_URL}/api/orders/all`, { method: 'DELETE' });
+                    const response = await fetch(api('/api/orders/all'), { method: 'DELETE' });
                     if (!response.ok) throw new Error('초기화 실패');
                     alert('데이터베이스가 성공적으로 초기화되었습니다.');
                     fetchAndRenderOrders();
@@ -276,7 +279,7 @@
             const trackingNumber = document.getElementById('tracking-number').value.trim() || null;
             try {
                 trackingConfirm.disabled = true;
-                const resp = await fetch(`${SERVER_URL}/api/orders/${orderId}/complete`, {
+                const resp = await fetch(api(`/api/orders/${orderId}/complete`), {
                     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackingNumber, carrier })
                 });
                 if (!resp.ok) {
