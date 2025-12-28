@@ -98,7 +98,14 @@
         }
         // Normalize base server URL (remove trailing slash) and provide api helper
         const BASE_SERVER = SERVER_URL ? SERVER_URL.replace(/\/+$/, '') : '';
-        function api(path) { return BASE_SERVER + path; }
+        //ymkwon : 
+        //function api(path) { return BASE_SERVER + path; }
+        function api(path) {
+            if (window.location.protocol === 'file:') {
+                return 'http://localhost:3000' + path;
+            }
+            return window.location.origin + path;
+        }
 
         function checkPassword() {
             const correctPassword = "eoqkr!";
